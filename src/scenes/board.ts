@@ -15,6 +15,9 @@ class Board {
     static size = 10; // Length of board in squares
     static squareSize = 34; // Length of square sprite in px
     static pieceSize = 32; // Length of piece sprite in px
+    static offsetX = Board.size; // X-offset from corner of the canvas
+    static offsetY = Board.size; // Y-offset from corner of the canvas
+
     data: Square[] = Array(Board.size ** 2).fill(null);
     get(x: number, y: number) {
         return this.data[y * Board.size + x];
@@ -24,11 +27,23 @@ class Board {
     }
 };
 class Square extends Phaser.GameObjects.Sprite {
-    constructor(public x: number, public y: number, scene: Scene, type: SquareType) {
-        super(scene, x, y, 'square', type);
+    posX: number;
+    posY: number;
+    constructor(x: number, y: number, scene: Scene, type: SquareType) {
+        let posX = Board.offsetX + x * Board.squareSize, posY = Board.offsetY + y * Board.squareSize;
+        super(scene, posX, posY, 'square', type);
+        this.posX = posX;
+        this.posY = posY;
         scene.add.existing(this);
     }
-    piece: PieceType = null;
+    piece: Piece = null;
+    setPiece(piece: PieceType) {
+        this.piece = new Piece(this.scene, this.posX, this.posY, 'piece', piece);
+        this.scene.add.existing(this.piece);
+    }
+};
+class Piece extends Phaser.GameObjects.Sprite {
+    pieceType: PieceType = null;
 };
 export class BoardScene extends Scene {
     private board = new Board();
@@ -40,7 +55,6 @@ export class BoardScene extends Scene {
         this.load.spritesheet('square', './src/assets/squares.png', {frameWidth: Board.squareSize, frameHeight: Board.squareSize});
     }
     create() {
-        let offset = Board.squareSize;
         let squareType = SquareType.Square;
         for (let y = 1; y <= Board.size; y++) {
             for (let x = 1; x <= Board.size; x++) {
@@ -48,10 +62,11 @@ export class BoardScene extends Scene {
                     if (y == Board.size - 1) squareType = SquareType.PromoteOpponent;
                     else if (y == 2) squareType = SquareType.PromotePlayer;
                 }
-                this.board.set(x, y, new Square(offset + x * Board.squareSize, offset + y * Board.squareSize, this, squareType));
+                this.board.set(x, y, new Square(x, y, this, squareType));
                 squareType = SquareType.Square;
             }
         }
-        this.add.sprite(offset + 4 * Board.squareSize, offset + 9 * Board.squareSize, 'piece', PieceType.BS);
+        // Create the board.
+        this.board.get(4, 4).setPiece(PieceType.BS);
     }
 }
